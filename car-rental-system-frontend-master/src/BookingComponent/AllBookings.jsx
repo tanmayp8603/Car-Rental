@@ -10,32 +10,6 @@ const AllBookings = () => {
   const admin_jwtToken = sessionStorage.getItem("admin-jwtToken");
   const admin = JSON.parse(sessionStorage.getItem("active-admin"));
 
-  // Function to check if a booking has a payment
-  const checkBookingPaymentStatus = async (bookingId) => {
-    try {
-      const response = await axios.get(
-        `http://localhost:8080/api/payment/check/${bookingId}`
-      );
-      return response.data.exists;
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-      return false;
-    }
-  };
-
-  // Function to fetch payment status for all bookings
-  const fetchPaymentStatusForBookings = async (bookings) => {
-    const updatedBookings = [];
-    for (const booking of bookings) {
-      const hasPayment = await checkBookingPaymentStatus(booking.bookingId || booking.id);
-      updatedBookings.push({
-        ...booking,
-        hasPayment: hasPayment
-      });
-    }
-    return updatedBookings;
-  };
-
   const [booking, setBooking] = useState({});
   const [vehicles, setVehicles] = useState([]);
   const [vehicleId, setVehicleId] = useState("");
@@ -49,12 +23,6 @@ const AllBookings = () => {
 
   const handleClose = () => setShowModal(false);
   const handleShow = () => setShowModal(true);
-
-  const assignBookingVehicle = (booking, e) => {
-    setAssignBooking(booking);
-    setVariantId(booking.variant.id);
-    handleShow();
-  };
 
   let navigate = useNavigate();
 
@@ -76,10 +44,29 @@ const AllBookings = () => {
   }, [admin, admin_jwtToken, navigate]);
 
   const retrieveAllBookings = async () => {
-    const response = await axios.get(
-      "http://localhost:8080/api/booking/fetch/all"
-    );
-    return response.data;
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/booking/fetch/all",
+        {
+          headers: {
+            Authorization: "Bearer " + admin_jwtToken,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      toast.error("Failed to fetch bookings. Please try again.", {
+        position: "top-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return null;
+    }
   };
 
   const retrieveVehiclesByVariant = async () => {
@@ -99,9 +86,7 @@ const AllBookings = () => {
     const getAllBooking = async () => {
       const res = await retrieveAllBookings();
       if (res) {
-        // Fetch payment status for each booking
-        const bookingsWithPaymentStatus = await fetchPaymentStatusForBookings(res.bookings);
-        setBookings(bookingsWithPaymentStatus);
+        setBookings(res.bookings);
       }
     };
 
@@ -140,6 +125,67 @@ const AllBookings = () => {
         draggable: true,
         progress: undefined,
       });
+    } else if (status === "Rejected" && vehicleId === "") {
+      let data = { status: status, bookingId: assignBooking.bookingId };
+
+      console.log(data);
+
+      fetch("http://localhost:8080/api/booking/update/assign/vehicle", {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + admin_jwtToken,
+        },
+        body: JSON.stringify(data),
+      })
+        .then((result) => {
+          result.json().then((res) => {
+            if (res.success) {
+              toast.success(res.responseMessage, {
+                position: "top-center",
+                autoClose: 1000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+              });
+
+              setTimeout(() => {
+                window.location.reload(true);
+              }, 1000); 
+            } else if (!res.success) {
+              toast.error(res.responseMessage, {
+                position: "top-center",
+                autoClose: 1000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+              });
+              setTimeout(() => {
+                window.location.reload(true);
+              }, 1000); 
+            }
+          });
+        })
+        .catch((error) => {
+          console.error(error);
+          toast.error("It seems server is down", {
+            position: "top-center",
+            autoClose: 1000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+          setTimeout(() => {
+            window.location.reload(true);
+          }, 1000); 
+        });
     } else if (status === "Approved" && vehicleId === "") {
       toast.error("Select Vehicle!!!", {
         position: "top-right",
@@ -153,10 +199,10 @@ const AllBookings = () => {
     } else {
       let data =
         status === "Rejected"
-          ? { status: status, bookingId: assignBooking.id }
+          ? { status: status, bookingId: assignBooking.bookingId }
           : {
               status: status,
-              bookingId: assignBooking.id,
+              bookingId: assignBooking.bookingId,
               vehicleId: vehicleId,
             };
 
@@ -167,7 +213,7 @@ const AllBookings = () => {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-         
+          Authorization: "Bearer " + admin_jwtToken,
         },
         body: JSON.stringify(data),
       })
@@ -226,8 +272,51 @@ const AllBookings = () => {
     navigate("/customer/vehicle/booking/details", { state: booking });
   };
 
+  const assignBookingVehicle = (booking, e) => {
+    setAssignBooking(booking);
+    setVariantId(booking.variant.id);
+    handleShow();
+  };
+
+  // Function to get payment status based on booking status
+  const getPaymentStatus = (booking) => {
+    // If booking status is Paid & Confirmed or CONFIRMED, show Paid
+    if (booking.status === "Paid & Confirmed" || booking.status === "CONFIRMED") {
+      return "Paid";
+    }
+    // If booking status is Rejected, show Rejected
+    else if (booking.status === "Rejected") {
+      return "Rejected";
+    }
+    // If booking status is Deactivated, show Not Paid
+    else if (booking.status === "Deactivated" || booking.status === "Cancel") {
+      return "Not Paid";
+    }
+    // For all other statuses, show Pending
+    else {
+      return "Pending";
+    }
+  };
+
+  // Function to get payment status color based on booking status
+  const getPaymentStatusColor = (booking) => {
+    // If booking status is Paid & Confirmed or CONFIRMED, show green
+    if (booking.status === "Paid & Confirmed" || booking.status === "CONFIRMED") {
+      return "text-success";
+    }
+    // If booking status is Rejected or Deactivated, show red
+    else if (booking.status === "Rejected" || booking.status === "Deactivated" || booking.status === "Cancel") {
+      return "text-danger";
+    }
+    // For all other statuses, show yellow
+    else {
+      return "text-warning";
+    }
+  };
+
   return (
     <div className="mt-3">
+      <ToastContainer />
       <div
         className="card form-card ms-2 me-2 mb-5 custom-bg"
         style={{
@@ -264,92 +353,106 @@ const AllBookings = () => {
                   <th scope="col">To</th>
                   <th scope="col">Status</th>
                   <th scope="col">Vehicle</th>
-                  <th scope="col">Payment</th>
+                  <th scope="col">Payment Status</th>
                   <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody className="header-logo-color">
-                {bookings.map((booking) => {
-                  return (
-                    <tr>
-                      <td>
-                        <img
-                          src={
-                            "http://localhost:8080/api/variant/" +
-                            booking.variant.image
-                          }
-                          className="img-fluid"
-                          alt="car_pic"
-                          style={{
-                            maxWidth: "90px",
-                          }}
-                        />
-                      </td>
-                      <td>
-                        <b>{booking.variant.name}</b>
-                      </td>
-                      <td>
-                        <b>{booking.bookingId}</b>
-                      </td>
-                      <td>
-                        <b>{booking.totalDay}</b>
-                      </td>
-                      <td>
-                        <b>&#8377;{booking.totalPrice}</b>
-                      </td>
-                      <td>
-                        <b>
-                          {booking.customer.firstName +
-                            " " +
-                            booking.customer.lastName}
-                        </b>
-                      </td>
-                      <td>
-                        <b>{formatDateFromEpoch(booking.bookingTime)}</b>
-                      </td>
-                      <td>
-                        <b>{booking.startDate}</b>
-                      </td>
-                      <td>
-                        <b>{booking.endDate}</b>
-                      </td>
-                      <td>
-                        <b>{booking.status}</b>
-                      </td>
-                      <td>
-                        <b>
-                          {booking.vehicle
-                            ? booking.vehicle.registrationNumber
-                            : "NA"}
-                        </b>
-                      </td>
-                      <td>
-                        <b>{booking.hasPayment ? "Paid" : "Pending"}</b>
-                      </td>
-                      <td>
-                        {(() => {
-                          if (booking.status === "Pending") {
-                            return (
-                              <button
-                                onClick={() => assignBookingVehicle(booking)}
-                                className="btn btn-sm bg-color custom-bg-text"
-                              >
-                                <b>Update</b>
-                              </button>
-                            );
-                          }
-                        })()}
+                {bookings && Array.isArray(bookings) && bookings.map((booking, index) => (
+                  <tr key={index}>
+                    <td>
+                      <img
+                        src={
+                          "http://localhost:8080/api/variant/" +
+                          booking.variant.image
+                        }
+                        className="img-fluid"
+                        alt="car_pic"
+                        style={{
+                          maxWidth: "90px",
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <b>{booking.variant.name}</b>
+                    </td>
+                    <td>
+                      <b>{booking.bookingId}</b>
+                    </td>
+                    <td>
+                      <b>{booking.totalDay}</b>
+                    </td>
+                    <td>
+                      <b>&#8377;{booking.totalPrice}</b>
+                    </td>
+                    <td>
+                      <b>
+                        {booking.customer.firstName +
+                          " " +
+                          booking.customer.lastName}
+                      </b>
+                    </td>
+                    <td>
+                      <b>{formatDateFromEpoch(booking.bookingTime)}</b>
+                    </td>
+                    <td>
+                      <b>{booking.startDate}</b>
+                    </td>
+                    <td>
+                      <b>{booking.endDate}</b>
+                    </td>
+                    <td>
+                      <b
+                        className={
+                          booking.status === "Pending"
+                            ? "text-warning"
+                            : booking.status === "Approved"
+                            ? "text-success"
+                            : booking.status === "Rejected"
+                            ? "text-danger"
+                            : booking.status === "Cancel"
+                            ? "text-danger"
+                            : "text-primary"
+                        }
+                      >
+                        {booking.status}
+                      </b>
+                    </td>
+                    <td>
+                      <b>
+                        {booking.vehicle
+                          ? booking.vehicle.registrationNumber
+                          : "NA"}
+                      </b>
+                    </td>
+                    <td>
+                      <b className={getPaymentStatusColor(booking)}>
+                        {getPaymentStatus(booking)}
+                      </b>
+                    </td>
+                    <td>
+                      {(() => {
+                        if (booking.status === "Pending") {
+                          return (
+                            <button
+                              onClick={() => assignBookingVehicle(booking)}
+                              className="btn btn-sm bg-color custom-bg-text"
+                            >
+                              <b>Update</b>
+                            </button>
+                          );
+                        }
+                      })()}
 
-                        <button
-                          onClick={() => viewCustomerBookingDetail(booking)}
-                          className="btn btn-sm bg-color custom-bg-text"
-                        >
-                          <b>View</b>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      <button
+                        onClick={() => viewCustomerBookingDetail(booking)}
+                        className="btn btn-sm bg-color custom-bg-text"
+                      >
+                        <b>View</b>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -370,7 +473,7 @@ const AllBookings = () => {
           <div className="ms-3 mt-3 mb-3 me-3">
             <form>
               <div className="mb-3">
-                <label for="title" className="form-label">
+                <label htmlFor="title" className="form-label">
                   <b>Booking Id</b>
                 </label>
                 <input
@@ -412,9 +515,9 @@ const AllBookings = () => {
                       >
                         <option value="">Select Vehicle</option>
 
-                        {vehicles.map((vehicle) => {
+                        {vehicles && Array.isArray(vehicles) && vehicles.map((vehicle) => {
                           return (
-                            <option value={vehicle.id}>
+                            <option value={vehicle.id} key={vehicle.id}>
                               {vehicle.registrationNumber}
                             </option>
                           );
@@ -431,7 +534,7 @@ const AllBookings = () => {
                   onClick={updateCustomerBookingStatus}
                   className="btn bg-color custom-bg-text"
                 >
-                  Udpate Status
+                  Update Status
                 </button>
                 <ToastContainer />
               </div>

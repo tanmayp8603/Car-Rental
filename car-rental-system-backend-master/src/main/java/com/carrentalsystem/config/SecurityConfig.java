@@ -32,11 +32,8 @@ public class SecurityConfig {
 	@Autowired
 	private JwtAuthFilter authFilter;
 
-	@Bean
-
-	public UserDetailsService userDetailsService() {
-		return new CustomUserDetailsService();
-	}
+	@Autowired
+	private UserDetailsService userDetailsService;
 
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
@@ -77,10 +74,10 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationProvider authenticationProvider() {
+	public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
 		DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-		authenticationProvider.setUserDetailsService(userDetailsService());
-		authenticationProvider.setPasswordEncoder(passwordEncoder());
+		authenticationProvider.setUserDetailsService(userDetailsService);
+		authenticationProvider.setPasswordEncoder(passwordEncoder);
 		return authenticationProvider;
 	}
 

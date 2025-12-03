@@ -201,8 +201,45 @@ const MyBooking = () => {
     navigate("/customer/booking/payment", { state: booking });
   };
 
+  // Function to get payment status based on booking status
+  const getPaymentStatus = (booking) => {
+    // If booking status is Paid & Confirmed or CONFIRMED, show Paid
+    if (booking.status === "Paid & Confirmed" || booking.status === "CONFIRMED") {
+      return "Paid";
+    }
+    // If booking status is Rejected, show Rejected
+    else if (booking.status === "Rejected") {
+      return "Rejected";
+    }
+    // If booking status is Deactivated, show Not Paid
+    else if (booking.status === "Deactivated" || booking.status === "Cancel") {
+      return "Not Paid";
+    }
+    // For all other statuses, show Pending
+    else {
+      return "Pending";
+    }
+  };
+
+  // Function to get payment status color based on booking status
+  const getPaymentStatusColor = (booking) => {
+    // If booking status is Paid & Confirmed or CONFIRMED, show green
+    if (booking.status === "Paid & Confirmed" || booking.status === "CONFIRMED") {
+      return "text-success";
+    }
+    // If booking status is Rejected or Deactivated, show red
+    else if (booking.status === "Rejected" || booking.status === "Deactivated" || booking.status === "Cancel") {
+      return "text-danger";
+    }
+    // For all other statuses, show yellow
+    else {
+      return "text-warning";
+    }
+  };
+
   return (
     <div className="mt-3">
+      <ToastContainer />
       <div
         className="card form-card ms-2 me-2 mb-5 custom-bg"
         style={{
@@ -225,36 +262,36 @@ const MyBooking = () => {
           }}
         >
           {loading ? (
-            <div className="text-center">
+            <div className="text-center mt-5">
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
-              <p className="mt-2">Loading your bookings...</p>
             </div>
+          ) : bookings.length <= 0 ? (
+            <h4 className="text-center p-5 mt-5">No Bookings Available</h4>
           ) : (
             <div className="table-responsive">
               <table className="table text-color text-center">
-              <thead className="table-bordered border-color bg-color custom-bg-text">
-                <tr>
-                  <th scope="col">Variant</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Booking Id</th>
-                  <th scope="col">Total Day</th>
-                  <th scope="col">Price</th>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Booking Time</th>
-                  <th scope="col">From</th>
-                  <th scope="col">To</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Vehicle</th>
-                  <th scope="col">Payment</th>
-                  <th scope="col">Action</th>
-                </tr>
-              </thead>
-              <tbody className="header-logo-color">
-                {bookings.map((booking) => {
-                  return (
-                    <tr key={booking.id}>
+                <thead className="table-bordered border-color bg-color custom-bg-text">
+                  <tr>
+                    <th scope="col">Variant</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Booking Id</th>
+                    <th scope="col">Total Day</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Booking Time</th>
+                    <th scope="col">From</th>
+                    <th scope="col">To</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Vehicle</th>
+                    <th scope="col">Payment Status</th>
+                    <th scope="col">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="header-logo-color">
+                  {bookings && Array.isArray(bookings) && bookings.map((booking, index) => (
+                    <tr key={index}>
                       <td>
                         <img
                           src={
@@ -269,7 +306,7 @@ const MyBooking = () => {
                         />
                       </td>
                       <td>
-                        <b>{booking.variant.carName}</b>
+                        <b>{booking.variant.name}</b>
                       </td>
                       <td>
                         <b>{booking.bookingId}</b>
@@ -278,15 +315,13 @@ const MyBooking = () => {
                         <b>{booking.totalDay}</b>
                       </td>
                       <td>
-                        <b>{booking.totalPrice}</b>
+                        <b>&#8377;{booking.totalPrice}</b>
                       </td>
                       <td>
                         <b>
-                          {booking.customer
-                            ? booking.customer.firstName +
-                              " " +
-                              booking.customer.lastName
-                            : "NA"}
+                          {booking.customer.firstName +
+                            " " +
+                            booking.customer.lastName}
                         </b>
                       </td>
                       <td>
@@ -299,7 +334,21 @@ const MyBooking = () => {
                         <b>{booking.endDate}</b>
                       </td>
                       <td>
-                        <b>{booking.status}</b>
+                        <b
+                          className={
+                            booking.status === "Pending"
+                              ? "text-warning"
+                              : booking.status === "Approved"
+                              ? "text-success"
+                              : booking.status === "Rejected"
+                              ? "text-danger"
+                              : booking.status === "Cancel"
+                              ? "text-danger"
+                              : "text-primary"
+                          }
+                        >
+                          {booking.status}
+                        </b>
                       </td>
                       <td>
                         <b>
@@ -309,52 +358,39 @@ const MyBooking = () => {
                         </b>
                       </td>
                       <td>
-                        <b>{booking.hasPayment ? "Paid" : "Pending"}</b>
+                        <b className={getPaymentStatusColor(booking)}>
+                          {getPaymentStatus(booking)}
+                        </b>
                       </td>
                       <td>
-                        {(() => {
-                          if (booking.status === "Approved") {
-                            return (
-                              <button
-                                onClick={() => payAndConfirm(booking)}
-                                className="btn btn-sm bg-color custom-bg-text"
-                              >
-                                <b>Pay & Confirm</b>
-                              </button>
-                            );
-                          }
-                        })()}
-
-                        {(() => {
-                          if (
-                            booking.status !== "Paid & Confirmed" &&
-                            booking.status !== "Cancelled"
-                          ) {
-                            return (
-                              <button
-                                type="button"
-                                onClick={(e) => cancelBooking(e, booking.id)}
-                                className="btn btn-sm bg-color custom-bg-text mt-2"
-                              >
-                                <b>Cancel</b>
-                              </button>
-                            );
-                          }
-                        })()}
-
                         <button
                           onClick={() => viewCustomerBookingDetail(booking)}
-                          className="btn btn-sm bg-color custom-bg-text mt-2"
+                          className="btn btn-sm bg-color custom-bg-text"
                         >
                           <b>View</b>
                         </button>
+                        {booking.status === "Pending" && (
+                          <button
+                            onClick={(e) => cancelBooking(e, booking.bookingId)}
+                            className="btn btn-sm btn-danger ms-2"
+                          >
+                            <b>Cancel</b>
+                          </button>
+                        )}
+                        {booking.status === "Approved" && !booking.hasPayment && (
+                          <button
+                            onClick={(e) => payAndConfirm(booking)}
+                            className="btn btn-sm btn-success ms-2"
+                          >
+                            <b>Pay Now</b>
+                          </button>
+                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

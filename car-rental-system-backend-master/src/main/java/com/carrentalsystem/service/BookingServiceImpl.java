@@ -19,20 +19,16 @@ public class BookingServiceImpl implements BookingService {
 	
 	@Override
 	public Booking addBooking(Booking booking) {
-		// TODO Auto-generated method stub
 		return bookingDao.save(booking);
 	}
 
 	@Override
 	public Booking updateBooking(Booking booking) {
-		// TODO Auto-generated method stub
 		return bookingDao.save(booking);
 	}
 
 	@Override
 	public Booking getById(int bookingId) {
-		// TODO Auto-generated method stub
-		
 		Optional<Booking> optional = bookingDao.findById(bookingId);
 		
 		if(optional.isPresent()) {
@@ -44,33 +40,26 @@ public class BookingServiceImpl implements BookingService {
 
 	@Override
 	public Booking getByBookingId(String bookingId) {
-		// TODO Auto-generated method stub
 		return bookingDao.findByBookingId(bookingId);
 	}
 
 	@Override
 	public List<Booking> getByCustomer(User customer) {
-		// TODO Auto-generated method stub
-		// Fetch bookings with payment information using eager fetching
 		return bookingDao.findByCustomer(customer);
 	}
 
 	@Override
 	public List<Booking> getByStatus(String status) {
-		// TODO Auto-generated method stub
 		return bookingDao.findByStatus(status);
 	}
 
 	@Override
 	public List<Booking> getByVehicle(Vehicle vehicle) {
-		// TODO Auto-generated method stub
 		return bookingDao.findByVehicle(vehicle);
 	}
 
 	@Override
 	public List<Booking> getAllBookings() {
-		// TODO Auto-generated method stub
 		return bookingDao.findAll();
 	}
-
 }

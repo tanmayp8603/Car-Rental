@@ -23,5 +23,4 @@ public interface BookingService {
 	List<Booking> getByVehicle(Vehicle vehicle);
 	
 	List<Booking> getAllBookings();
-
 }

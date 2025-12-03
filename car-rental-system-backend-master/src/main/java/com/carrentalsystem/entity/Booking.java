@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.FetchType;
 
 @Entity
 public class Booking {
@@ -41,7 +42,7 @@ public class Booking {
 	@JoinColumn(name = "variant_id")
 	private Variant variant;
 
-	@OneToOne
+	@OneToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "payment_id")
 	private Payment payment;
 

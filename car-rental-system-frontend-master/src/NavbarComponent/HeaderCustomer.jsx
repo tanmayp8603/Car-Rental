@@ -8,7 +8,7 @@ const HeaderCustomer = () => {
   const user = JSON.parse(sessionStorage.getItem("active-customer"));
 
   const userLogout = () => {
-    toast.success("logged out!!!", {
+    toast.success("Logged out successfully!", {
       position: "top-center",
       autoClose: 1000,
       hideProgressBar: false,
@@ -17,12 +17,18 @@ const HeaderCustomer = () => {
       draggable: true,
       progress: undefined,
     });
+    
+    // Remove session storage items
     sessionStorage.removeItem("active-customer");
     sessionStorage.removeItem("customer-jwtToken");
-    window.location.reload(true);
+    
+    // Dispatch a custom event to notify other components
+    window.dispatchEvent(new Event('storage'));
+    
+    // Navigate to home page
     setTimeout(() => {
-      navigate("/home");
-    }, 2000);
+      navigate("/");
+    }, 1500);
   };
 
   const viewProfile = () => {

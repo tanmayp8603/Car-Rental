@@ -11,7 +11,7 @@ public class AddBookingRequest {
 
 	private Integer variantId;
 	
-	private Integer bookingId; 
+	private String bookingId; 
 
 	private String status;
 
@@ -58,11 +58,11 @@ public class AddBookingRequest {
 		this.variantId = variantId;
 	}
 
-	public Integer getBookingId() {
+	public String getBookingId() {
 		return bookingId;
 	}
 
-	public void setBookingId(Integer bookingId) {
+	public void setBookingId(String bookingId) {
 		this.bookingId = bookingId;
 	}
 

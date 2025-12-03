@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ViewCustomerBooking = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const booking = location.state;
   const [hasPayment, setHasPayment] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState(null);
@@ -16,6 +17,26 @@ const ViewCustomerBooking = () => {
   console.log("Booking startDate:", booking?.startDate);
   console.log("Booking endDate:", booking?.endDate);
   console.log("Booking status:", booking?.status);
+
+  // Check if user is logged in when component mounts
+  useEffect(() => {
+    const customer = JSON.parse(sessionStorage.getItem("active-customer"));
+    const admin = JSON.parse(sessionStorage.getItem("active-admin"));
+    const customerToken = sessionStorage.getItem("customer-jwtToken");
+    const adminToken = sessionStorage.getItem("admin-jwtToken");
+    
+    // If no customer or admin data/token, redirect to home page
+    if ((!customer || !customerToken) && (!admin || !adminToken)) {
+      navigate("/");
+      return;
+    }
+    
+    // If no booking data, show error message (don't redirect here)
+    if (!booking) {
+      // This will be handled by the conditional render below
+      return;
+    }
+  }, [booking, navigate]);
 
   // Fetch payment status when component mounts
   useEffect(() => {

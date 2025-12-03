@@ -34,4 +34,4 @@ export const requireAdminAuth = (navigate, redirectTo = "/admin/login") => {
     return false;
   }
   return true;
-}; 
+};

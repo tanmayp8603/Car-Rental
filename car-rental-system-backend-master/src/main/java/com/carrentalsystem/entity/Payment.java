@@ -144,8 +144,6 @@ public class Payment implements Serializable {
 		this.transactionTime = transactionTime;
 	}
 
-
-
 	public String getPaymentStatus() {
 		return paymentStatus;
 	}

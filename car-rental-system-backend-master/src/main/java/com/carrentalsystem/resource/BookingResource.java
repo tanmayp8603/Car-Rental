@@ -121,7 +121,7 @@ public class BookingResource {
 	}
 
 	private static int getTotalDaysInclusive(LocalDate startDate, LocalDate endDate) {
-	
+
 		return (int) ChronoUnit.DAYS.between(startDate, endDate) + 1;
 	}
 
@@ -205,7 +205,7 @@ public class BookingResource {
 			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
 		}
 
-		Booking booking = this.bookingService.getById(request.getBookingId());
+		Booking booking = this.bookingService.getByBookingId(request.getBookingId());
 
 		if (booking == null) {
 			response.setResponseMessage("booking not found!!!");
@@ -235,7 +235,6 @@ public class BookingResource {
 		return new ResponseEntity<CommonApiResponse>(response, HttpStatus.OK);
 	}
 
-	@Override
 	public ResponseEntity<CommonApiResponse> customerPaymentForBooking(CustomerBookingPaymentRequest request) {
 
 		LOG.info("Request received for updating booking status and assign vehicle");
