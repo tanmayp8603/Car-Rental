@@ -9,7 +9,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,6 +42,7 @@ import com.carrentalsystem.utility.JwtUtils;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
+import org.springframework.core.io.Resource;
 
 @Component
 @Transactional
@@ -462,5 +462,157 @@ public class UserResource {
 
 		System.out.println("response sent!");
 	}
+	
+	// New method for updating user details
+	public ResponseEntity<CommonApiResponse> updateUser(RegisterUserRequestDto request) {
 
+		LOG.info("Received request for updating user details");
+
+		CommonApiResponse response = new CommonApiResponse();
+
+		if (request == null || request.getUserId() == 0) {
+			response.setResponseMessage("bad request, missing data");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		User existingUser = this.userService.getUserById(request.getUserId());
+
+		if (existingUser == null) {
+			response.setResponseMessage("User not found");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		// Update user details
+		existingUser.setFirstName(request.getFirstName());
+		existingUser.setLastName(request.getLastName());
+		existingUser.setEmailId(request.getEmailId());
+		existingUser.setPhoneNo(request.getPhoneNo());
+
+		// Update address details
+		Address address = existingUser.getAddress();
+		if (address != null) {
+			address.setStreet(request.getStreet());
+			address.setCity(request.getCity());
+			address.setPincode(request.getPincode());
+			
+			// Save updated address
+			this.addressService.updateAddress(address);
+		} else {
+			// Create new address if it doesn't exist
+			address = new Address();
+			address.setStreet(request.getStreet());
+			address.setCity(request.getCity());
+			address.setPincode(request.getPincode());
+			
+			Address savedAddress = this.addressService.addAddress(address);
+			existingUser.setAddress(savedAddress);
+		}
+
+		// Save updated user
+		User updatedUser = this.userService.updateUser(existingUser);
+
+		if (updatedUser == null) {
+			response.setResponseMessage("Failed to update user details");
+			response.setSuccess(false);
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		response.setResponseMessage("User details updated successfully");
+		response.setSuccess(true);
+		return new ResponseEntity<CommonApiResponse>(response, HttpStatus.OK);
+	}
+	
+	// New method for updating driving license
+	public ResponseEntity<CommonApiResponse> updateCustomerDrivingLicense(AddDrivingLicenseRequest request) {
+
+		LOG.info("Request received for updating customer driving license");
+
+		CommonApiResponse response = new CommonApiResponse();
+
+		if (request == null) {
+			response.setResponseMessage("bad request - missing input");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		if (request.getCustomerId() == null || request.getCustomerId() == 0) {
+			response.setResponseMessage("missing customer id");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		if (request.getLicenseNumber() == null || request.getLicenseNumber().isEmpty()) {
+			response.setResponseMessage("license number is required");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		if (request.getExpirationDate() == null || request.getExpirationDate().isEmpty()) {
+			response.setResponseMessage("expiration date is required");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		User customer = this.userService.getUserById(request.getCustomerId());
+
+		if (customer == null) {
+			response.setResponseMessage("Customer not found");
+			response.setSuccess(false);
+
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.BAD_REQUEST);
+		}
+
+		DrivingLicense existingLicense = customer.getLicense();
+		
+		// If no existing license, create a new one
+		if (existingLicense == null) {
+			existingLicense = new DrivingLicense();
+		}
+
+		// Update license details
+		existingLicense.setLicenseNumber(request.getLicenseNumber());
+		existingLicense.setExpirationDate(request.getExpirationDate());
+		
+		// If a new image is provided, store it
+		if (request.getLicensePic() != null && !request.getLicensePic().isEmpty()) {
+			String licensePicName = this.storageService.storeLicenseImage(request.getLicensePic());
+			existingLicense.setLicensePic(licensePicName);
+		}
+
+		// Save the license
+		DrivingLicense updatedLicense = this.drivingLicenseService.updateLicense(existingLicense);
+
+		if (updatedLicense == null) {
+			response.setResponseMessage("Failed to update the Driving license");
+			response.setSuccess(false);
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		// Associate the updated license with the customer
+		customer.setLicense(updatedLicense);
+
+		// Save updated customer
+		User updatedCustomer = this.userService.updateUser(customer);
+
+		if (updatedCustomer == null) {
+			response.setResponseMessage("Failed to update the Driving license");
+			response.setSuccess(false);
+			return new ResponseEntity<CommonApiResponse>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		response.setResponseMessage("Customer Driving License updated successfully");
+		response.setSuccess(true);
+
+		LOG.info("Response Sent!!!");
+
+		return new ResponseEntity<CommonApiResponse>(response, HttpStatus.OK);
+	}
 }

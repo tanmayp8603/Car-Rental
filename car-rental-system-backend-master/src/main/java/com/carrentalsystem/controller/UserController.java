@@ -89,5 +89,18 @@ public class UserController {
 	public void fetchProductImage(@PathVariable("drivingLicense") String drivingLicense, HttpServletResponse resp) {
 		this.userResource.fetchDrivingLicenceImage(drivingLicense, resp);
 	}
-
+	
+	// New endpoint for updating user details
+	@PutMapping("/update")
+	@Operation(summary = "Api to update user details")
+	public ResponseEntity<CommonApiResponse> updateUser(@RequestBody RegisterUserRequestDto request) {
+		return userResource.updateUser(request);
+	}
+	
+	// New endpoint for updating driving license
+	@PutMapping("/update/driving-license")
+	@Operation(summary = "Api to update customer driving license")
+	public ResponseEntity<CommonApiResponse> updateCustomerDrivingLicense(AddDrivingLicenseRequest request) {
+		return userResource.updateCustomerDrivingLicense(request);
+	}
 }

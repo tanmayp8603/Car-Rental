@@ -6,6 +6,8 @@ import com.carrentalsystem.entity.User;
 
 public class RegisterUserRequestDto {
 
+	private int userId;
+	
 	private String firstName;
 
 	private String lastName;
@@ -23,6 +25,14 @@ public class RegisterUserRequestDto {
 	private String city;
 
 	private int pincode;
+
+	public int getUserId() {
+		return userId;
+	}
+
+	public void setUserId(int userId) {
+		this.userId = userId;
+	}
 
 	public String getFirstName() {
 		return firstName;
